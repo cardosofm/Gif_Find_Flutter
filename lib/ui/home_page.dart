@@ -23,7 +23,7 @@ class _HomeState extends State<HomePage> {
     // escolher o tipo de busca
     if (_searchType == null) {
       response = await http.get(
-          "https://api.giphy.com/v1/gifs/trending?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&limit=10&rating=g");
+          "https://api.giphy.com/v1/gifs/trending?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&limit=50&rating=g");
     } else {
       response = await http.get(
           "https://api.giphy.com/v1/gifs/search?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&q=$_searchType&limit=20&offset=$_offSet&rating=g&lang=en");
@@ -34,8 +34,7 @@ class _HomeState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-   // _getGifs().then((map) => print(map["data"]));
-    print("Foi!");
+    _getGifs().then((map) => print(map["data"]));
   }
 
   @override
@@ -54,15 +53,62 @@ class _HomeState extends State<HomePage> {
           children: [
             TextField(
               decoration: InputDecoration(
-                labelText: "Search",
-                labelStyle: TextStyle(color: Colors.white),
-                border: OutlineInputBorder(),
-              ),
+                  labelText: "Search",
+                  labelStyle: TextStyle(color: Colors.white),
+                  border: OutlineInputBorder()),
               style: TextStyle(color: Colors.white, fontSize: 18.0),
-            )
+            ),
+            Divider(),
+            // fazendo carregamento dos gifs usando future builder
+            // mostrando um progress indicator
+            Expanded(
+                child: FutureBuilder(
+              future: _getGifs(),
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.waiting:
+                  case ConnectionState.none:
+                    return Container(
+                      width: 100.0,
+                      height: 100.0,
+                      alignment: Alignment.center,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 5.0,
+                      ),
+                    );
+
+                  default:
+                    if (snapshot.hasError) {
+                      return Container();
+                    } else
+                      return _creatGifTable(context, snapshot);
+                }
+              },
+            ))
           ],
         ),
       ),
     );
+  }
+
+  //contrução da tabela de gifs
+  Widget _creatGifTable(BuildContext context, AsyncSnapshot snapshot) {
+    return GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 8.0,
+          mainAxisSpacing: 8.0,
+        ),
+        itemCount: 50,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            child: Image.network(
+              snapshot.data["data"][index]["images"]["fixed_height"]["url"],
+              height: 200.0,
+              fit: BoxFit.cover,
+            ),
+          );
+        });
   }
 }
