@@ -1,7 +1,13 @@
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import 'package:gif_finder/ui/gif_page.dart';
 import 'package:http/http.dart' as http;
+
+import 'package:share/share.dart';
+import 'package:transparent_image/transparent_image.dart';
+
+import 'package:gallery_saver/gallery_saver.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -21,13 +27,12 @@ class _HomeState extends State<HomePage> {
   Future<Map> _getGifs() async {
     http.Response response;
     // escolher o tipo de busca
-    if (_searchType == null || _searchType == "") {
+    if (_searchType == null || _searchType.isEmpty) {
       response = await http.get(
           "https://api.giphy.com/v1/gifs/trending?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&limit=48&rating=g");
     } else {
       response = await http.get(
           "https://api.giphy.com/v1/gifs/search?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&q=$_searchType&limit=47&offset=$_offSet&rating=g&lang=pt");
-
     }
     return json.decode(response.body);
   }
@@ -128,12 +133,45 @@ class _HomeState extends State<HomePage> {
         itemBuilder: (context, index) {
           if (_searchType == null || index < snapshot.data["data"].length)
             return GestureDetector(
-              child: Image.network(
-                snapshot.data["data"][index]["images"]["fixed_height_small"]
-                    ["url"],
+              child: FadeInImage.memoryNetwork(
+                placeholder: kTransparentImage,
+                image: snapshot.data["data"][index]["images"]
+                    ["fixed_width_small"]["url"],
                 height: 100.0,
                 fit: BoxFit.cover,
               ),
+              /*Image.network(
+                snapshot.data["data"][index]["images"]["fixed_width_small"]
+                    ["url"],
+                height: 100.0,
+                fit: BoxFit.cover,
+              ),*/
+              onTap: () {
+                print(snapshot.data["data"][index]);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            GifPage(snapshot.data["data"][index])));
+              },
+              onLongPress: () async {
+                /*Share.share(snapshot.data["data"][index]["images"]["fixed_height"]
+                ["url"]);*/
+
+                // Saved with this method.
+                print("vai salvar");
+                Scaffold.of(context).showSnackBar(SnackBar(
+                  content: Text("Salvando na galeria"),
+                ));
+
+                String url = snapshot.data["data"][index]["images"]
+                    ["fixed_height"]["url"];
+                GallerySaver.saveImage(url).then((bool success) {
+                  Scaffold.of(context).showSnackBar(SnackBar(
+                    content: Text("Salvo na galeria"),
+                  ));
+                });
+              },
             );
           else
             return Container(
