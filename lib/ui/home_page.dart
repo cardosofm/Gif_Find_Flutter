@@ -21,12 +21,13 @@ class _HomeState extends State<HomePage> {
   Future<Map> _getGifs() async {
     http.Response response;
     // escolher o tipo de busca
-    if (_searchType == null) {
+    if (_searchType == null || _searchType == "") {
       response = await http.get(
-          "https://api.giphy.com/v1/gifs/trending?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&limit=50&rating=g");
+          "https://api.giphy.com/v1/gifs/trending?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&limit=48&rating=g");
     } else {
       response = await http.get(
-          "https://api.giphy.com/v1/gifs/search?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&q=$_searchType&limit=20&offset=$_offSet&rating=g&lang=en");
+          "https://api.giphy.com/v1/gifs/search?api_key=nPkg1cur4bPhqs59kpXTP1WvWoDTI1Ty&q=$_searchType&limit=47&offset=$_offSet&rating=g&lang=pt");
+
     }
     return json.decode(response.body);
   }
@@ -51,12 +52,25 @@ class _HomeState extends State<HomePage> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
+            Center(
+              child: Text(
+                "Buscador de Gifs da Pietra",
+                style: TextStyle(color: Colors.white, fontSize: 22.0),
+              ),
+            ),
+            Divider(),
             TextField(
               decoration: InputDecoration(
-                  labelText: "Search",
+                  labelText: "Digite algo aqui para procurar",
                   labelStyle: TextStyle(color: Colors.white),
                   border: OutlineInputBorder()),
               style: TextStyle(color: Colors.white, fontSize: 18.0),
+              onSubmitted: (text) {
+                setState(() {
+                  _searchType = text;
+                  _offSet = 0;
+                });
+              },
             ),
             Divider(),
             // fazendo carregamento dos gifs usando future builder
@@ -92,23 +106,61 @@ class _HomeState extends State<HomePage> {
     );
   }
 
+  // funcao para pegar o numero de itens que veio da API
+  int _getCount(List data) {
+    if (_searchType == null || _searchType == "") {
+      return data.length;
+    }
+    // vai colocar um item a mais para poder fazer o botão de carregamento de mais itens
+    return data.length + 1;
+  }
+
   //contrução da tabela de gifs
   Widget _creatGifTable(BuildContext context, AsyncSnapshot snapshot) {
     return GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+          crossAxisCount: 4,
           crossAxisSpacing: 8.0,
           mainAxisSpacing: 8.0,
         ),
-        itemCount: 50,
+        // colocando o tamanho da lista
+        itemCount: _getCount(snapshot.data["data"]),
         itemBuilder: (context, index) {
-          return GestureDetector(
-            child: Image.network(
-              snapshot.data["data"][index]["images"]["fixed_height"]["url"],
-              height: 200.0,
-              fit: BoxFit.cover,
-            ),
-          );
+          if (_searchType == null || index < snapshot.data["data"].length)
+            return GestureDetector(
+              child: Image.network(
+                snapshot.data["data"][index]["images"]["fixed_height_small"]
+                    ["url"],
+                height: 100.0,
+                fit: BoxFit.cover,
+              ),
+            );
+          else
+            return Container(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _offSet += 47;
+                  });
+                },
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.white,
+                        size: 50.0,
+                      ),
+                      Text(
+                        "Carregar mais",
+                        style: TextStyle(color: Colors.white, fontSize: 14.0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
         });
   }
 }
